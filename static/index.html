@@ -103,37 +103,48 @@ C318.115,0,375.068,22.126,419.404,58.936z" style="fill:#F14336;"></path>
 </div>
 
 <body>
-  <div class="sidebar glass">
-    <h2 class="title">OMAT</h2>
-    <div id="buttons">
-      <button id="btnLogin" class="login-button">
-        <p class="text">Login</p>
-      </button>
-      <hr>
-      <button id="order-button" class="button">
-        <p class="text">Prenota il tuo ordine</p>
-        <span class="badge">5</span>
-      </button>
-      <button id="stage-button" class="button">
-        <p class="text">Richiedi di fare il PCTO da noi</p>
-        <span class="badge">2</span>
-      </button>
-      <button id="contact-button" class="button">
-        <p class="text">Chi siamo e contatti</p>
+  <div class="container">
+    <!-- Sidebar fissa -->
+    <div class="sidebar glass">
+      <h2 class="title">OMAT</h2>
+      <div id="buttons">
+        <button id="btnLogin" class="login-button">
+          <p class="text">Login</p>
+        </button>
+        <hr>
+        <button id="order-button" class="button">
+          <p class="text">Prenota il tuo ordine</p>
+          <span class="badge">5</span>
+        </button>
+        <button id="stage-button" class="button">
+          <p class="text">Richiedi di fare il PCTO da noi</p>
+          <span class="badge">2</span>
+        </button>
+        <button id="contact-button" class="button">
+          <p class="text">Chi siamo e contatti</p>
+        </button>
+      </div>
+      <button id="btnLogout" class="logout-button">
+        <p class="text">Logout</p>
       </button>
     </div>
-    <button id="btnLogout" class="logout-button">
-      <p class="text">Logout</p>
-    </button>
-  </div>
 
-  <div class="content">
-    <h1>Contenuto principale</h1>
-    <p>Qui va il tuo contenuto...</p>
-    <p style="margin-top: 1000px;">
-      Scrolla per vedere che la navbar resta fissa 👀
-    </p>
+    <!-- Contenuto principale -->
+    <div class="main-content">
+      <section class="hero">
+        <div class="hero-text">
+          <h1 class="h1Hero">Tornitura e fresatura CNC di alta precisione</h1>
+          <p>Specializzati in componenti meccanici su disegno, dal prototipo alla produzione.</p>
+          <span class="hero-meta">CNC · Acciai · Alluminio · Produzioni su misura</span>
+        </div>
+        <div class="hero-image">
+          <img src="./images/cnc-photo.png" alt="Lavorazione CNC di precisione">
+        </div>
+      </section>
+      <!-- qui puoi aggiungere altre sezioni -->
+    </div>
   </div>
 </body>
+
 
 </html>
