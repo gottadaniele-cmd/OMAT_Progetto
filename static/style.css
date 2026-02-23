@@ -60,7 +60,7 @@ p, li, span, button, input {
   height: 100dvh;
   text-align: center;
   color: var(--text-dark);
-  padding: 12px;
+  padding: 12px 8px;
   box-sizing: border-box;
 }
 
@@ -93,7 +93,8 @@ hr {
   justify-content: center;
   text-align: center;
   height: 50px;
-  width: 300px;
+  max-width: 300px;
+  width: 100%;
   margin-bottom: 12px;
   background-color: var(--gray-light);
   border-radius: 16px;
@@ -120,9 +121,9 @@ hr {
 
 .button {
   position: relative;
-  width: 300px;
+  width: 100%;
   height: 50px;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -132,6 +133,7 @@ hr {
   border: none;
   cursor: pointer;
   transition: 400ms;
+  padding: 0 12px;
 }
 
 .button .text {
@@ -152,8 +154,8 @@ hr {
 
 .badge {
   position: absolute;
-  top: 5px;
-  right: 10px;
+  top: -4px;
+  right: 0px;
   background-color: #F97316;
   /* arancio industriale */
   color: white;
@@ -350,10 +352,9 @@ hr {
 }
 
 .h1Hero {
-  font-size: 86px;
+  font-size: clamp(36px, 6vw, 86px);
   margin-bottom: 20px;
   color: var(--black-tech);
-  width: 140%;
 }
 
 .hero p {
@@ -395,21 +396,110 @@ hr {
 
 
 /* ---------- RESPONSIVE ---------- */
+@media screen and (min-width: 1200px) {
+  .h1Hero {
+    width: 140%;
+  }
+}
+
 @media screen and (max-width: 900px) {
+  .main-content{
+    margin-left: 20vh;
+  }
+
+  /* SIDEBAR */
   .sidebar {
-    width: 60px;
-    padding: 10px;
+    width: 70px;
+    padding: 8px;
+    margin-left: 1vw;
   }
-  .main-content {
-    margin-left: 60px;
-    width: calc(100% - 60px);
+
+  .button,
+  .login-button,
+  .logout-button {
+    width: auto;
+    max-width: 200px;
   }
+
+  /* HERO */
   .hero {
     grid-template-columns: 1fr;
-    padding-left: 20px;
+    min-height: auto;
+    padding: 40px 20px;
     text-align: center;
   }
-  .hero-image {
-    margin-top: 20px;
+
+  .hero-text {
+    align-items: center;
+  }
+
+  .h1Hero {
+    font-size: 56px;
+    width: 100%;
+  }
+
+  .hero-image img {
+    max-width: 500px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+
+  /* SIDEBAR → TOP BAR */
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    border-radius: 0;
+  }
+
+  .glass {
+    border-radius: 0;
+  }
+
+  .title {
+    font-size: 24px;
+    margin-bottom: 0;
+  }
+
+  hr {
+    display: none;
+  }
+
+  .button,
+  .login-button,
+  .logout-button {
+    max-width: 200px;
+    width: auto;
+    height: 42px;
+    font-size: 14px;
+  }
+
+  /* MAIN */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 20px 10px;
+  }
+
+  .h1Hero {
+    font-size: 38px;
+    line-height: 1.1;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .hero-image img {
+    max-width: 100%;
   }
 }
