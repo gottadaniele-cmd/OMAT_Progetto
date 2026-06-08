@@ -13,7 +13,7 @@
           con informazioni complete fin dal primo contatto.
         </p>
       </div>
-      <app-status-badge status="sent"></app-status-badge>
+      <app-status-badge [status]="requestStatus()"></app-status-badge>
     </section>
 
     <form class="order-layout" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
@@ -97,7 +97,7 @@
       <aside class="order-summary">
         <div>
           <span class="eyebrow">Riepilogo</span>
-          <h2>Richiesta in bozza</h2>
+          <h2>{{ requestStatusTitle() }}</h2>
         </div>
 
         <dl>
@@ -123,7 +123,9 @@
           </div>
         </dl>
 
-        <button class="submit-button" type="button" (click)="submitOrder()">Invia richiesta</button>
+        <button class="submit-button" type="submit" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Invio in corso...' : 'Invia richiesta' }}
+        </button>
         @if (requestSent()) {
           <p class="success-note">Richiesta inviata correttamente. La trovi nella dashboard admin.</p>
         }

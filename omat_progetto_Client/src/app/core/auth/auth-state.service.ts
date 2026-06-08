@@ -7,15 +7,23 @@ export type AuthUser = {
   email: string;
   role: UserRole;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  postalCode?: string;
+  phone?: string;
 };
 
 const STORAGE_KEY = 'omat-user';
+const TOKEN_STORAGE_KEY = 'omat-token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStateService {
   private readonly userSignal = signal<AuthUser | null>(this.readStoredUser());
+  private readonly tokenSignal = signal<string | null>(this.readStoredToken());
 
   readonly user = this.userSignal.asReadonly();
+  readonly token = this.tokenSignal.asReadonly();
   readonly isLoggedIn = computed(() => Boolean(this.userSignal()));
   readonly role = computed(() => this.userSignal()?.role ?? null);
   readonly displayRole = computed(() => {
@@ -36,14 +44,21 @@ export class AuthStateService {
     return '';
   });
 
-  setUser(user: AuthUser): void {
+  setUser(user: AuthUser, token?: string): void {
     this.userSignal.set(user);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+
+    if (token) {
+      this.tokenSignal.set(token);
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    }
   }
 
   clearUser(): void {
     this.userSignal.set(null);
+    this.tokenSignal.set(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   }
 
   private readStoredUser(): AuthUser | null {
@@ -54,5 +69,9 @@ export class AuthStateService {
       localStorage.removeItem(STORAGE_KEY);
       return null;
     }
+  }
+
+  private readStoredToken(): string | null {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
   }
 }

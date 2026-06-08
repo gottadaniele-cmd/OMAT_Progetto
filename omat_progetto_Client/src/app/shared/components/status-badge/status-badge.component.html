@@ -1,5 +1,7 @@
 <span
   class="status-badge"
+  [class.status-draft]="status() === 'draft'"
+  [class.status-submitting]="status() === 'submitting'"
   [class.status-sent]="status() === 'sent'"
   [class.status-under-review]="status() === 'under-review'"
   [class.status-approved]="status() === 'approved'"

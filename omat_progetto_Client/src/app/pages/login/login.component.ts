@@ -34,8 +34,8 @@ export class LoginComponent {
     const { email, password } = this.loginForm.getRawValue();
 
     this.api.login(email, password).subscribe({
-      next: ({ user }) => {
-        this.auth.setUser(user);
+      next: ({ token, user }) => {
+        this.auth.setUser(user, token);
 
         if (user.role === 'admin') {
           this.router.navigate(['/admin']);

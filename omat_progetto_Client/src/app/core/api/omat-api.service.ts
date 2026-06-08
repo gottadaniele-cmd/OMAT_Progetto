@@ -1,8 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OrderRequest, OrderStatus } from '../models/order.model';
 import { PctoRequest, PctoRequestStatus } from '../models/pcto-request.model';
+import { AuthStateService } from '../auth/auth-state.service';
 
 export type CreateOrderPayload = {
   title: string;
@@ -15,6 +16,7 @@ export type CreateOrderPayload = {
     fileName: string;
     contentType: string;
     size: number;
+    dataUrl?: string;
   }>;
 };
 
@@ -39,7 +41,20 @@ export type LoginResponse = {
     email: string;
     role: 'azienda' | 'admin' | 'studente';
     name: string;
+    firstName?: string;
+    lastName?: string;
+    city?: string;
+    postalCode?: string;
+    phone?: string;
   };
+};
+
+export type CurrentUserResponse = LoginResponse['user'] & {
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  postalCode?: string;
+  phone?: string;
 };
 
 export type RegisterAdminPayload = {
@@ -73,6 +88,7 @@ export type RegisterStudentPayload = {
 @Injectable({ providedIn: 'root' })
 export class OmatApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthStateService);
   private readonly baseUrl = 'http://127.0.0.1:3001/api';
 
   login(email: string, password: string): Observable<LoginResponse> {
@@ -87,27 +103,31 @@ export class OmatApiService {
     return this.http.post<{ ok: boolean }>(
       `${this.baseUrl}/auth/logout`,
       {},
-      { withCredentials: true },
+      this.requestOptions(),
     );
   }
 
+  getCurrentUser(): Observable<CurrentUserResponse> {
+    return this.http.get<CurrentUserResponse>(`${this.baseUrl}/auth/me`, this.requestOptions());
+  }
+
   createOrder(payload: CreateOrderPayload): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/orders`, payload, { withCredentials: true });
+    return this.http.post(`${this.baseUrl}/orders`, payload, this.requestOptions());
   }
 
   getOrders(): Observable<OrderRequest[]> {
-    return this.http.get<OrderRequest[]>(`${this.baseUrl}/orders`, { withCredentials: true });
+    return this.http.get<OrderRequest[]>(`${this.baseUrl}/orders`, this.requestOptions());
   }
 
   getOrder(id: string): Observable<OrderRequest> {
-    return this.http.get<OrderRequest>(`${this.baseUrl}/orders/${id}`, { withCredentials: true });
+    return this.http.get<OrderRequest>(`${this.baseUrl}/orders/${id}`, this.requestOptions());
   }
 
   updateOrderStatus(id: string, status: OrderStatus): Observable<OrderRequest> {
     return this.http.patch<OrderRequest>(
       `${this.baseUrl}/orders/${id}/status`,
       { status },
-      { withCredentials: true },
+      this.requestOptions(),
     );
   }
 
@@ -130,22 +150,33 @@ export class OmatApiService {
   }
 
   createPctoRequest(payload: CreatePctoPayload): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/pcto`, payload, { withCredentials: true });
+    return this.http.post(`${this.baseUrl}/pcto`, payload, this.requestOptions());
   }
 
   getPctoRequests(): Observable<PctoRequest[]> {
-    return this.http.get<PctoRequest[]>(`${this.baseUrl}/pcto`, { withCredentials: true });
+    return this.http.get<PctoRequest[]>(`${this.baseUrl}/pcto`, this.requestOptions());
   }
 
   getPctoRequest(id: string): Observable<PctoRequest> {
-    return this.http.get<PctoRequest>(`${this.baseUrl}/pcto/${id}`, { withCredentials: true });
+    return this.http.get<PctoRequest>(`${this.baseUrl}/pcto/${id}`, this.requestOptions());
   }
 
   updatePctoStatus(id: string, status: PctoRequestStatus): Observable<PctoRequest> {
     return this.http.patch<PctoRequest>(
       `${this.baseUrl}/pcto/${id}/status`,
       { status },
-      { withCredentials: true },
+      this.requestOptions(),
     );
+  }
+
+  private requestOptions(): { withCredentials: true; headers?: HttpHeaders } {
+    const token = this.auth.token();
+    const options: { withCredentials: true; headers?: HttpHeaders } = { withCredentials: true };
+
+    if (token) {
+      options.headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    }
+
+    return options;
   }
 }

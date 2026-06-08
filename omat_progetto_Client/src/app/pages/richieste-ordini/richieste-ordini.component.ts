@@ -31,8 +31,23 @@ export class RichiesteOrdiniComponent implements OnInit {
   protected readonly uploadedFiles = signal<File[]>([]);
   protected readonly submitted = signal(false);
   protected readonly requestSent = signal(false);
+  protected readonly isSubmitting = signal(false);
   protected readonly submitError = signal('');
   protected readonly priorityLabels = ORDER_PRIORITY_LABELS;
+  protected readonly requestStatus = computed(() => {
+    if (this.isSubmitting()) {
+      return 'submitting';
+    }
+
+    return this.requestSent() ? 'sent' : 'draft';
+  });
+  protected readonly requestStatusTitle = computed(() => {
+    if (this.isSubmitting()) {
+      return 'Invio in corso';
+    }
+
+    return this.requestSent() ? 'Richiesta inviata' : 'Richiesta in bozza';
+  });
 
   protected readonly orderForm = this.formBuilder.nonNullable.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
@@ -40,7 +55,7 @@ export class RichiesteOrdiniComponent implements OnInit {
     material: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(1)]],
     priority: ['standard', Validators.required],
-    description: ['', [Validators.required, Validators.minLength(20)]],
+    description: ['', Validators.required],
     notes: [''],
   });
 
@@ -65,6 +80,12 @@ export class RichiesteOrdiniComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.orderForm.valueChanges.subscribe(() => {
+      if (this.requestSent() && !this.isSubmitting()) {
+        this.requestSent.set(false);
+      }
+    });
+
     const currentUser = this.auth.user();
     if (currentUser && currentUser.role === 'azienda') {
       this.orderForm.controls.customer.setValue(currentUser.name);
@@ -77,44 +98,63 @@ export class RichiesteOrdiniComponent implements OnInit {
     this.requestSent.set(false);
   }
 
-  protected submitOrder(): void {
+  protected async submitOrder(): Promise<void> {
     this.submitted.set(true);
     this.requestSent.set(false);
+    this.isSubmitting.set(false);
     this.submitError.set('');
 
     if (this.orderForm.invalid) {
       this.orderForm.markAllAsTouched();
+      this.submitError.set(this.getOrderFormError());
       return;
     }
 
+    this.isSubmitting.set(true);
+
     const value = this.orderForm.getRawValue();
+    let attachments: Array<{
+      fileName: string;
+      contentType: string;
+      size: number;
+      dataUrl: string;
+    }>;
+
+    try {
+      attachments = await Promise.all(
+        this.uploadedFiles().map(async (file) => ({
+          fileName: file.name,
+          contentType: file.type,
+          size: file.size,
+          dataUrl: await this.readFileAsDataUrl(file),
+        })),
+      );
+    } catch (error) {
+      console.error(error);
+      this.isSubmitting.set(false);
+      this.submitError.set('Impossibile leggere uno degli allegati. Riprova a caricarlo.');
+      return;
+    }
+
     const payload = {
       title: value.title,
-      idAzienda: value.customer, // Se admin, qui dovrebbe esserci l'ID numerico
       material: value.material,
       description: value.description,
       priority: value.priority,
       quantity: value.quantity,
       notes: value.notes,
-      attachments: this.uploadedFiles().map((file) => ({
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size,
-      })),
+      attachments,
     };
 
     this.api.createOrder(payload).subscribe({
       next: () => {
         this.requestSent.set(true);
-        // Reset del form mantenendo il valore del cliente se azienda
-        const customerValue = this.orderForm.controls.customer.value;
-        this.orderForm.reset();
-        this.orderForm.patchValue({ customer: customerValue, quantity: 1, priority: 'standard' });
-        this.uploadedFiles.set([]);
+        this.isSubmitting.set(false);
         this.submitted.set(false);
       },
       error: (error) => {
         console.error(error);
+        this.isSubmitting.set(false);
         if (error.status === 401 || error.status === 403) {
           this.submitError.set('Sessione scaduta o permessi insufficienti. Prova a rifare il login.');
         } else if (error.status === 400) {
@@ -124,5 +164,34 @@ export class RichiesteOrdiniComponent implements OnInit {
         }
       },
     });
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private getOrderFormError(): string {
+    const fieldLabels: Record<string, string> = {
+      title: 'Nome lavorazione',
+      customer: 'Cliente / azienda',
+      material: 'Materiale',
+      quantity: 'Quantita',
+      priority: 'Priorita',
+      description: 'Descrizione ordine',
+    };
+
+    const invalidFields = Object.entries(this.orderForm.controls)
+      .filter(([, control]) => control.invalid)
+      .map(([fieldName]) => fieldLabels[fieldName] ?? fieldName);
+
+    return invalidFields.length
+      ? `Controlla questi campi: ${invalidFields.join(', ')}.`
+      : 'Controlla i dati inseriti prima di inviare la richiesta.';
   }
 }

@@ -14,6 +14,7 @@ export interface OrderAttachment {
   contentType: string;
   size: number;
   uploadedAt: string;
+  dataUrl?: string;
 }
 
 export interface OrderRequest {

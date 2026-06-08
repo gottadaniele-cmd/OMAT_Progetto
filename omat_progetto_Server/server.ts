@@ -73,7 +73,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use(cookieParser());
 app.use(
   cors({
@@ -111,34 +111,73 @@ function toTokenPayload(payload: any): TokenPayload {
 }
 
 function normalizeOrder(row: any) {
+  const attachments = normalizeOrderAttachments(row);
+
   return {
     id: String(row.id),
     code: `OM-${String(row.id).padStart(4, '0')}`,
-    title: row.nomeProdotto,
+    title: row.nomeProdotto ?? 'Lavorazione senza titolo',
     customer: row.nomeAzienda ?? 'Azienda non disponibile',
     customerEmail: row.emailAzienda ?? '',
     material: row.materiale ?? 'Da definire',
-    quantity: row.quantita,
+    quantity: Number(row.quantita ?? 1),
     priority: ORDER_PRIORITIES.includes(row.urgenza) ? row.urgenza : 'standard',
     status: row.stato ?? 'sent',
     assignedAdmin: row.adminResponsabile ?? 'Da assegnare',
     createdAt: row.dataRichiesta,
     updatedAt: row.dataAggiornamento ?? row.dataRichiesta,
     deliveryDate: row.dataConsegna,
-    description: row.descrizione,
+    description: row.descrizione ?? '',
     notes: row.noteAggiuntive,
-    attachments: row.disegno
-      ? [
-          {
-            id: `ordine-${row.id}-disegno`,
-            fileName: row.disegno,
-            contentType: 'application/octet-stream',
-            size: 0,
-            uploadedAt: row.dataRichiesta,
-          },
-        ]
-      : [],
+    attachments,
   };
+}
+
+function normalizeOrderAttachments(row: any) {
+  if (!row.disegno) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(row.disegno);
+    const rawAttachments = Array.isArray(parsed) ? parsed : [parsed];
+
+    return rawAttachments.map((attachment, index) => ({
+      id: attachment.id ?? `ordine-${row.id}-allegato-${index + 1}`,
+      fileName: attachment.fileName ?? attachment.name ?? `Allegato ${index + 1}`,
+      contentType: attachment.contentType ?? attachment.type ?? 'application/octet-stream',
+      size: Number(attachment.size ?? 0),
+      uploadedAt: attachment.uploadedAt ?? row.dataRichiesta,
+      dataUrl: attachment.dataUrl,
+    }));
+  } catch {
+    return [
+      {
+        id: `ordine-${row.id}-disegno`,
+        fileName: row.disegno,
+        contentType: 'application/octet-stream',
+        size: 0,
+        uploadedAt: row.dataRichiesta,
+      },
+    ];
+  }
+}
+
+function serializeOrderAttachments(body: any): string | null {
+  if (Array.isArray(body.attachments) && body.attachments.length) {
+    return JSON.stringify(
+      body.attachments.map((attachment: any, index: number) => ({
+        id: attachment.id ?? `allegato-${index + 1}`,
+        fileName: attachment.fileName,
+        contentType: attachment.contentType,
+        size: Number(attachment.size ?? 0),
+        uploadedAt: new Date().toISOString(),
+        dataUrl: attachment.dataUrl,
+      })),
+    );
+  }
+
+  return body.disegno ?? null;
 }
 
 function normalizePcto(row: any) {
@@ -149,12 +188,12 @@ function normalizePcto(row: any) {
     email: row.email ?? '',
     city: row.citta ?? '',
     postalCode: row.cap ? String(row.cap) : '',
-    school: row.scuola,
-    classYear: row.classe,
-    studyProgram: row.indirizzo,
+    school: row.scuola ?? '',
+    classYear: row.classe ?? '',
+    studyProgram: row.indirizzo ?? '',
     startDate: row.dataInizio,
     endDate: row.dataFine,
-    motivation: row.motivazione,
+    motivation: row.motivazione ?? '',
     status: row.stato ?? 'sent',
     createdAt: row.createdAt ?? row.dataInizio,
   };
@@ -375,7 +414,16 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = createToken(payload);
     res.cookie('TOKEN', token, cookieOptions);
-    res.send({ token, user: payload });
+    res.send({
+      token,
+      user: {
+        ...payload,
+        firstName: student.nome ?? '',
+        lastName: student.cognome ?? '',
+        city: student.citta ?? '',
+        postalCode: student.cap ? String(student.cap) : '',
+      },
+    });
     return;
   }
 
@@ -385,6 +433,41 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/logout', (_req, res) => {
   res.cookie('TOKEN', '', { ...cookieOptions, maxAge: -1 });
   res.send({ ok: true });
+});
+
+app.get('/api/auth/me', requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (req.user?.role === 'studente') {
+    const result = await pool.query(
+      `
+        select "idStudente", nome, cognome, "numeroTelefono", email, citta, cap
+        from public.studenti
+        where "idStudente" = $1
+        limit 1
+      `,
+      [req.user.id],
+    );
+    const student = result.rows[0];
+
+    if (!student) {
+      res.status(404).send('Studente non trovato');
+      return;
+    }
+
+    res.send({
+      id: Number(student.idStudente),
+      email: student.email,
+      role: 'studente',
+      name: `${student.nome} ${student.cognome ?? ''}`.trim(),
+      firstName: student.nome ?? '',
+      lastName: student.cognome ?? '',
+      city: student.citta ?? '',
+      postalCode: student.cap ? String(student.cap) : '',
+      phone: student.numeroTelefono ?? '',
+    });
+    return;
+  }
+
+  res.send(req.user);
 });
 
 app.post('/api/auth/register-company', async (req, res) => {
@@ -547,7 +630,7 @@ app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res) => {
       [
         req.body.nomeProdotto ?? req.body.title,
         req.body.descrizione ?? req.body.description,
-        req.body.disegno ?? req.body.attachments?.[0]?.fileName ?? null,
+        serializeOrderAttachments(req.body),
         req.body.urgenza ?? req.body.priority ?? 'standard',
         idAzienda,
         req.body.dataConsegna ?? null,
@@ -745,8 +828,8 @@ app.post('/api/pcto', attachUserIfPresent, async (req: AuthenticatedRequest, res
 
     const pctoResult = await client.query(
       `
-        insert into public."richiestePCTO" (scuola, classe, indirizzo, "dataInizio", "dataFine", motivazione, "idStudente")
-        values ($1, $2, $3, $4, $5, $6, $7)
+        insert into public."richiestePCTO" (scuola, classe, indirizzo, "dataInizio", "dataFine", motivazione, "idStudente", stato)
+        values ($1, $2, $3, $4, $5, $6, $7, 'sent')
         returning *
       `,
       [

@@ -27,21 +27,40 @@
               </div>
             </div>
 
-            <div class="drawing-preview">
-              <span>PDF</span>
-              <strong>Anteprima disegno tecnico</strong>
-              <p>Qui verra visualizzato il PDF o l'immagine tecnica caricata dal cliente.</p>
-            </div>
+            @if (previewAttachment(); as preview) {
+              <div class="drawing-preview has-preview">
+                @if (isPreviewImage(preview.contentType)) {
+                  <img [src]="preview.dataUrl" [alt]="preview.fileName" />
+                } @else if (isPreviewPdf(preview.contentType) && previewUrl()) {
+                  <iframe [src]="previewUrl()" [title]="preview.fileName"></iframe>
+                } @else {
+                  <span>FILE</span>
+                  <strong>{{ preview.fileName }}</strong>
+                  <p>Formato allegato non visualizzabile in anteprima.</p>
+                }
+              </div>
+            } @else {
+              <div class="drawing-preview">
+                <span>PDF</span>
+                <strong>Anteprima non disponibile</strong>
+                <p>Gli ordini precedenti salvano solo il nome file. I nuovi allegati verranno visualizzati qui.</p>
+              </div>
+            }
 
             <div class="attachment-list">
               @for (attachment of order.attachments; track attachment.id) {
-                <article>
+                <button
+                  type="button"
+                  [class.is-selected]="attachment.id === previewAttachment()?.id"
+                  [disabled]="!attachment.dataUrl"
+                  (click)="selectAttachment(attachment.id)"
+                >
                   <div>
                     <strong>{{ attachment.fileName }}</strong>
                     <p>{{ attachment.contentType }} · {{ formatSize(attachment.size) }}</p>
                   </div>
                   <span>{{ formatDate(attachment.uploadedAt) }}</span>
-                </article>
+                </button>
               } @empty {
                 <div class="empty-box">Nessun allegato tecnico registrato.</div>
               }

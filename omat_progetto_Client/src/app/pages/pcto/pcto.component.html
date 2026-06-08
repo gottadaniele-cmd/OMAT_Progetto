@@ -13,15 +13,18 @@
           disponibilita. La richiesta verra valutata dall'amministrazione interna.
         </p>
       </div>
-      <app-status-badge status="sent"></app-status-badge>
+      <app-status-badge [status]="requestStatus()"></app-status-badge>
     </section>
 
     <form class="pcto-layout" [formGroup]="pctoForm" (ngSubmit)="submitPctoRequest()">
       <section class="pcto-panel">
         <div class="account-note">
           <span>Email collegata</span>
-          <strong>{{ savedMail }}</strong>
+          <strong>{{ savedMail() }}</strong>
         </div>
+        @if (profileError()) {
+          <p class="error-note">{{ profileError() }}</p>
+        }
 
         <div class="section-title">
           <span>01</span>
@@ -127,7 +130,7 @@
       <aside class="pcto-summary">
         <div>
           <span class="eyebrow">Riepilogo</span>
-          <h2>Richiesta in bozza</h2>
+          <h2>{{ requestStatusTitle() }}</h2>
         </div>
 
         <dl>
@@ -153,9 +156,11 @@
           </div>
         </dl>
 
-        <button class="submit-button" type="submit">Invia richiesta PCTO</button>
+        <button class="submit-button" type="submit" [disabled]="isSubmitting()">
+          {{ isSubmitting() ? 'Invio in corso...' : 'Invia richiesta PCTO' }}
+        </button>
         @if (requestSent()) {
-          <p class="success-note">Richiesta PCTO pronta per l'invio API. I dati sono stati validati.</p>
+          <p class="success-note">Richiesta PCTO salvata e inviata correttamente.</p>
         }
         @if (submitError()) {
           <p class="error-note">{{ submitError() }}</p>

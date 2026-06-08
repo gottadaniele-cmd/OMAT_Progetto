@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { startWith } from 'rxjs';
@@ -6,6 +6,7 @@ import { ChiSiamoComponent } from '../chi-siamo/chi-siamo.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { OmatApiService } from '../../core/api/omat-api.service';
+import { AuthStateService } from '../../core/auth/auth-state.service';
 
 @Component({
   selector: 'app-pcto',
@@ -14,15 +15,33 @@ import { OmatApiService } from '../../core/api/omat-api.service';
   templateUrl: './pcto.component.html',
   styleUrl: './pcto.component.css',
 })
-export class PctoComponent {
+export class PctoComponent implements OnInit {
   private readonly formBuilder = new FormBuilder();
   private readonly api = inject(OmatApiService);
+  private readonly auth = inject(AuthStateService);
 
   protected readonly submitted = signal(false);
   protected readonly requestSent = signal(false);
+  protected readonly isSubmitting = signal(false);
   protected readonly submitError = signal('');
+  protected readonly profileError = signal('');
 
-  public savedMail = ''
+  protected readonly savedMail = computed(() => this.pctoForm.controls.email.value || this.auth.user()?.email || '');
+  protected readonly requestStatus = computed(() => {
+    if (this.isSubmitting()) {
+      return 'submitting';
+    }
+
+    return this.requestSent() ? 'sent' : 'draft';
+  });
+
+  protected readonly requestStatusTitle = computed(() => {
+    if (this.isSubmitting()) {
+      return 'Invio in corso';
+    }
+
+    return this.requestSent() ? 'Richiesta inviata' : 'Richiesta in bozza';
+  });
 
   protected readonly pctoForm = this.formBuilder.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -61,9 +80,55 @@ export class PctoComponent {
     };
   });
 
+  ngOnInit(): void {
+    this.pctoForm.valueChanges.subscribe(() => {
+      if (this.requestSent() && !this.isSubmitting()) {
+        this.requestSent.set(false);
+      }
+    });
+
+    const storedUser = this.auth.user();
+
+    if (storedUser?.role === 'studente') {
+      const [firstName, ...lastNameParts] = storedUser.name.split(' ');
+      this.pctoForm.patchValue({
+        firstName: storedUser.firstName ?? firstName ?? '',
+        lastName: storedUser.lastName ?? lastNameParts.join(' '),
+        email: storedUser.email,
+        city: storedUser.city ?? '',
+        postalCode: storedUser.postalCode ?? '',
+      });
+    }
+
+    this.api.getCurrentUser().subscribe({
+      next: (user) => {
+        if (user.role !== 'studente') {
+          return;
+        }
+
+        this.pctoForm.patchValue({
+          firstName: user.firstName ?? this.pctoForm.controls.firstName.value,
+          lastName: user.lastName ?? this.pctoForm.controls.lastName.value,
+          email: user.email,
+          city: user.city ?? '',
+          postalCode: user.postalCode ?? '',
+        });
+      },
+      error: (error) => {
+        console.error(error);
+        if (this.pctoForm.controls.city.value && this.pctoForm.controls.postalCode.value) {
+          return;
+        }
+
+        this.profileError.set('Sessione non aggiornata: rifai il login per caricare automaticamente citta e CAP.');
+      },
+    });
+  }
+
   protected submitPctoRequest(): void {
     this.submitted.set(true);
     this.requestSent.set(false);
+    this.isSubmitting.set(false);
     this.submitError.set('');
 
     if (this.pctoForm.invalid || !this.hasValidDateRange()) {
@@ -71,15 +136,22 @@ export class PctoComponent {
       return;
     }
 
+    this.isSubmitting.set(true);
+
     const payload = {
       ...this.pctoForm.getRawValue(),
       email: this.pctoForm.getRawValue().email,
     };
 
     this.api.createPctoRequest(payload).subscribe({
-      next: () => this.requestSent.set(true),
+      next: () => {
+        this.requestSent.set(true);
+        this.submitted.set(false);
+        this.isSubmitting.set(false);
+      },
       error: (error) => {
         console.error(error);
+        this.isSubmitting.set(false);
         this.submitError.set('Impossibile inviare la richiesta PCTO. Riprova tra poco.');
       },
     });

@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ChiSiamoComponent } from '../chi-siamo/chi-siamo.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -16,6 +17,7 @@ import { OmatApiService } from '../../core/api/omat-api.service';
 export class OrderDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(OmatApiService);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly orderId = this.route.snapshot.paramMap.get('id');
 
   protected readonly priorityLabels = ORDER_PRIORITY_LABELS;
@@ -23,6 +25,16 @@ export class OrderDetailComponent implements OnInit {
   protected readonly statusMessage = signal('');
   protected readonly actionError = signal('');
   protected readonly isUpdating = signal(false);
+  protected readonly selectedAttachmentId = signal('');
+  protected readonly previewAttachment = computed(() =>
+    this.order()?.attachments.find((attachment) => attachment.id === this.selectedAttachmentId()) ??
+    this.order()?.attachments.find((attachment) => Boolean(attachment.dataUrl)),
+  );
+  protected readonly previewUrl = computed<SafeResourceUrl | undefined>(() => {
+    const dataUrl = this.previewAttachment()?.dataUrl;
+
+    return dataUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(dataUrl) : undefined;
+  });
 
   ngOnInit(): void {
     if (!this.orderId) {
@@ -30,9 +42,18 @@ export class OrderDetailComponent implements OnInit {
     }
 
     this.api.getOrder(this.orderId).subscribe({
-      next: (order) => this.order.set(order),
+      next: (order) => {
+        this.order.set(order);
+        this.selectedAttachmentId.set(
+          order.attachments.find((attachment) => Boolean(attachment.dataUrl))?.id ?? '',
+        );
+      },
       error: (error) => console.error(error),
     });
+  }
+
+  protected selectAttachment(attachmentId: string): void {
+    this.selectedAttachmentId.set(attachmentId);
   }
 
   protected updateStatus(status: OrderStatus): void {
@@ -89,5 +110,13 @@ export class OrderDetailComponent implements OnInit {
     }
 
     return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  protected isPreviewImage(contentType?: string): boolean {
+    return Boolean(contentType?.startsWith('image/'));
+  }
+
+  protected isPreviewPdf(contentType?: string): boolean {
+    return contentType === 'application/pdf';
   }
 }
