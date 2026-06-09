@@ -7,6 +7,7 @@ export type OrderStatus =
   | 'rejected';
 
 export type OrderPriority = 'standard' | 'urgent' | 'critical';
+export type OrderQuoteStatus = 'not-sent' | 'sent' | 'accepted' | 'rejected';
 
 export interface OrderAttachment {
   id: string;
@@ -33,6 +34,11 @@ export interface OrderRequest {
   description: string;
   notes?: string;
   attachments: OrderAttachment[];
+  quoteAmount?: number | null;
+  quoteNotes?: string;
+  quoteStatus: OrderQuoteStatus;
+  quoteSentAt?: string;
+  quoteRespondedAt?: string;
 }
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {

@@ -100,6 +100,65 @@
               <p>{{ order.notes || 'Nessuna nota aggiuntiva inserita.' }}</p>
             </div>
           </section>
+
+          <section class="detail-panel quote-panel">
+            <div class="panel-heading">
+              <span>03</span>
+              <div>
+                <h2>Preventivo e accordo</h2>
+                <p>Importo proposto al cliente e risposta ricevuta prima della produzione.</p>
+              </div>
+            </div>
+
+            <div class="quote-summary">
+              <div>
+                <span>Preventivo</span>
+                <strong>{{ formatCurrency(order.quoteAmount) }}</strong>
+              </div>
+              <div>
+                <span>Stato accordo</span>
+                <strong>{{ quoteStatusLabel(order.quoteStatus) }}</strong>
+              </div>
+              <div>
+                <span>Invio</span>
+                <strong>{{ formatDate(order.quoteSentAt) }}</strong>
+              </div>
+              <div>
+                <span>Risposta</span>
+                <strong>{{ formatDate(order.quoteRespondedAt) }}</strong>
+              </div>
+            </div>
+
+            <form class="quote-form" [formGroup]="quoteForm">
+              <label>
+                <span>Importo preventivo</span>
+                <input type="number" min="0.01" step="0.01" formControlName="amount" />
+              </label>
+
+              <label>
+                <span>Note per il cliente</span>
+                <textarea
+                  formControlName="notes"
+                  placeholder="Es. prezzo IVA esclusa, tempi stimati, condizioni o dettagli tecnici del preventivo."
+                ></textarea>
+              </label>
+
+              <div class="quote-actions">
+                <button type="button" [disabled]="isSavingQuote()" (click)="saveQuote('sent')">
+                  Salva preventivo
+                </button>
+                <button type="button" [disabled]="isSavingQuote()" (click)="saveQuote('sent', true)">
+                  Salva e prepara email
+                </button>
+                <button type="button" class="secondary" [disabled]="isSavingQuote()" (click)="markQuote('accepted')">
+                  Segna accettato
+                </button>
+                <button type="button" class="danger" [disabled]="isSavingQuote()" (click)="markQuote('rejected')">
+                  Segna rifiutato
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
 
         <aside class="side-panel">

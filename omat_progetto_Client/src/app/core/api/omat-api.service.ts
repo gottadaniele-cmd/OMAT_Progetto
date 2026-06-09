@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { OrderRequest, OrderStatus } from '../models/order.model';
+import { OrderQuoteStatus, OrderRequest, OrderStatus } from '../models/order.model';
 import { PctoRequest, PctoRequestStatus } from '../models/pcto-request.model';
 import { AuthStateService } from '../auth/auth-state.service';
 
@@ -47,6 +47,12 @@ export type LoginResponse = {
     postalCode?: string;
     phone?: string;
   };
+};
+
+export type UpdateOrderQuotePayload = {
+  amount?: number | null;
+  notes?: string;
+  status?: OrderQuoteStatus;
 };
 
 export type CurrentUserResponse = LoginResponse['user'] & {
@@ -127,6 +133,14 @@ export class OmatApiService {
     return this.http.patch<OrderRequest>(
       `${this.baseUrl}/orders/${id}/status`,
       { status },
+      this.requestOptions(),
+    );
+  }
+
+  updateOrderQuote(id: string, payload: UpdateOrderQuotePayload): Observable<OrderRequest> {
+    return this.http.patch<OrderRequest>(
+      `${this.baseUrl}/orders/${id}/quote`,
+      payload,
       this.requestOptions(),
     );
   }

@@ -1,40 +1,131 @@
 <div class="background-blobs"></div>
 
-  <div class="container">
+<div class="container">
+  <app-sidebar></app-sidebar>
 
-    <!-- SIDEBAR -->
-    <app-sidebar></app-sidebar>
+  <main class="main-content home-page">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Officina meccanica di precisione</span>
+        <h1>OMAT<span>s.n.c.</span></h1>
+        <p class="company-line">di Merlati Davide e Gotta Flavio</p>
+        <p class="hero-lead">
+          Costruzione attrezzature, manutenzione e lavorazioni su misura per pezzi singoli e
+          piccole serie.
+        </p>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-      <!-- HEADER -->
-      <section class="hero">
-        <div class="hero-text">
-          <h1 class="h1Hero">OMAT<span class="sncHero">s.n.c</span></h1>
-          <h3 class="h3Hero">di Merlati Davide e Gotta Flavio</h3>
-          <h2 class="h2Hero">Officina Meccanica di Precisione</h2>
-          <hr class="hrHero">
-          <p>Costruzione attrezzatura e manutenzione <br>
-            Lavorazione di pezzi singoli e piccole serie</p>
+        <div class="hero-actions">
+          @if (canRequestOrder()) {
+            <button type="button" class="primary-action" (click)="goToOrdini()">Richiedi lavorazione</button>
+          } @else if (canBookPcto()) {
+            <button type="button" class="primary-action" (click)="goToPCTO()">Prenota PCTO</button>
+          } @else if (canOpenAdmin()) {
+            <button type="button" class="primary-action" (click)="goToAdmin()">Apri dashboard</button>
+          } @else {
+            <button type="button" class="primary-action" (click)="goToLogin()">Accedi all'area riservata</button>
+          }
+          <a class="secondary-action" href="#servizi">Scopri i servizi</a>
         </div>
-      </section>
+      </div>
 
-      <!-- SECTIONS -->
-      <section class="section glass">
-        <div class="section-text">
-          <h2 class="h2-home">Chi siamo</h2>
-          <p class="p-home">OMAT s.n.c. è un’officina meccanica di precisione specializzata nella
-            realizzazione di lavorazioni su misura. Offriamo servizi di costruzione
-            attrezzature, manutenzione e produzione di pezzi singoli o piccole serie.</p>
-            <!-- Da chiedere descrizione -->
-          <div class="div-img-home">
-            <img src="../../../assets/images/default.png" alt="Officina" class="img-chisiamo">
-            <img src="../../../assets/images/default.png" alt="Officina" class="img-chisiamo">
+      <div class="workshop-showcase" aria-label="Spazio fotografico officina OMAT">
+        @if (selectedShowcase().imageUrl) {
+          <img
+            class="showcase-photo"
+            [src]="selectedShowcase().imageUrl"
+            [alt]="selectedShowcase().title"
+          />
+        } @else {
+          <div class="photo-placeholder">
+            <span>Foto {{ selectedShowcase().label }}</span>
+            <strong>{{ selectedShowcase().title }}</strong>
+            <p>{{ selectedShowcase().description }}</p>
           </div>
-        </div>
-      </section>
+        }
 
-      <!-- FOOTER -->
-      <app-chi-siamo></app-chi-siamo>
-    </div>
-  </div>
+        <div class="showcase-tags">
+          @for (item of showcaseItems; track item.id) {
+            <button
+              type="button"
+              [class.is-active]="item.id === selectedShowcaseId()"
+              (click)="selectShowcase(item.id)"
+            >
+              {{ item.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section id="servizi" class="services-section">
+      <div class="section-heading">
+        <span class="eyebrow">Cosa facciamo</span>
+        <h2>Lavorazioni tecniche, gestione semplice.</h2>
+      </div>
+
+      <div class="service-grid">
+        <article>
+          <span>01</span>
+          <h3>Pezzi singoli</h3>
+          <p>Produzione su disegno per componenti meccanici, prototipi e ricambi specifici.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Piccole serie</h3>
+          <p>Ripetibilita e controllo per lotti contenuti, con priorita e materiali tracciati.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Manutenzione</h3>
+          <p>Interventi su attrezzature, adattamenti e supporto tecnico per continuita operativa.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="flow-section">
+      <div class="flow-copy">
+        <span class="eyebrow">Portale OMAT</span>
+        <h2>Richieste ordinate, stato sempre visibile.</h2>
+        <p>
+          Aziende e studenti possono inviare richieste complete; l'amministrazione le valuta dalla
+          dashboard e aggiorna lo stato passo dopo passo.
+        </p>
+      </div>
+
+      <div class="flow-list">
+        <div>
+          <strong>Richiesta lavorazione</strong>
+          <span>Disegni, materiale, quantita, priorita e note tecniche.</span>
+        </div>
+        <div>
+          <strong>Richiesta PCTO</strong>
+          <span>Dati studente, percorso scolastico, periodo e motivazione.</span>
+        </div>
+        <div>
+          <strong>Dashboard admin</strong>
+          <span>Controllo richieste, allegati, dettagli e avanzamento stato.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="reserved-content">
+        <span class="eyebrow">Area riservata</span>
+        <h2>Scegli da dove iniziare.</h2>
+
+        <div class="cta-actions">
+          <button type="button" (click)="goToOrdini()">Ordini</button>
+          <button type="button" (click)="goToPCTO()">PCTO</button>
+          <button type="button" (click)="goToLogin()">Login</button>
+        </div>
+
+        <p>
+          Ogni area ti porta direttamente allo spazio giusto: richieste di lavorazione,
+          prenotazioni PCTO o accesso personale.
+        </p>
+      </div>
+    </section>
+
+    <app-chi-siamo></app-chi-siamo>
+  </main>
+</div>

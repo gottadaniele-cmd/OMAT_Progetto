@@ -17,6 +17,7 @@ export const MOCK_ORDERS: OrderRequest[] = [
     description:
       'Boccole tornite con tolleranza stretta, finitura esterna satinata e controllo dimensionale finale.',
     notes: 'Cliente disponibile per confronto tecnico telefonico nel pomeriggio.',
+    quoteStatus: 'not-sent',
     attachments: [
       {
         id: 'att-1',
@@ -48,6 +49,9 @@ export const MOCK_ORDERS: OrderRequest[] = [
     updatedAt: '2026-05-15T11:10:00.000Z',
     description: 'Piastre fresate con forature passanti, smussi sugli spigoli e controllo planarita.',
     notes: 'Produzione avviata su piccola serie.',
+    quoteStatus: 'accepted',
+    quoteAmount: 840,
+    quoteNotes: 'Preventivo accettato dal cliente prima dell avvio produzione.',
     attachments: [
       {
         id: 'att-3',
@@ -72,6 +76,8 @@ export const MOCK_ORDERS: OrderRequest[] = [
     updatedAt: '2026-05-11T09:05:00.000Z',
     description: 'Ricambio meccanico su misura da campione fisico con scanalatura longitudinale.',
     notes: 'Campione fisico consegnato in officina.',
+    quoteStatus: 'sent',
+    quoteAmount: 320,
     attachments: [],
   },
   {
@@ -88,6 +94,8 @@ export const MOCK_ORDERS: OrderRequest[] = [
     updatedAt: '2026-05-13T17:20:00.000Z',
     description: 'Serie di distanziali con lunghezze differenziate e finitura pulita.',
     notes: 'Ordine completato e pronto per ritiro.',
+    quoteStatus: 'accepted',
+    quoteAmount: 510,
     attachments: [],
   },
 ];

@@ -16,6 +16,7 @@ dotenv.config({ path: '.env', override: true });
 type UserRole = 'azienda' | 'admin' | 'studente';
 type OrderStatus = 'sent' | 'under-review' | 'approved' | 'in-production' | 'completed' | 'rejected';
 type OrderPriority = 'standard' | 'urgent' | 'critical';
+type OrderQuoteStatus = 'not-sent' | 'sent' | 'accepted' | 'rejected';
 type PctoStatus = 'sent' | 'under-review' | 'approved' | 'rejected';
 
 type TokenPayload = {
@@ -67,6 +68,7 @@ const ORDER_STATUSES: OrderStatus[] = [
 ];
 const PCTO_STATUSES: PctoStatus[] = ['sent', 'under-review', 'approved', 'rejected'];
 const ORDER_PRIORITIES: OrderPriority[] = ['standard', 'urgent', 'critical'];
+const ORDER_QUOTE_STATUSES: OrderQuoteStatus[] = ['not-sent', 'sent', 'accepted', 'rejected'];
 
 app.use((req, _res, next) => {
   console.log(`${req.method}: ${req.originalUrl}`);
@@ -130,6 +132,16 @@ function normalizeOrder(row: any) {
     description: row.descrizione ?? '',
     notes: row.noteAggiuntive,
     attachments,
+    quoteAmount:
+      row.importoPreventivo === null || row.importoPreventivo === undefined
+        ? null
+        : Number(row.importoPreventivo),
+    quoteNotes: row.notePreventivo ?? '',
+    quoteStatus: ORDER_QUOTE_STATUSES.includes(row.statoPreventivo)
+      ? row.statoPreventivo
+      : 'not-sent',
+    quoteSentAt: row.dataInvioPreventivo,
+    quoteRespondedAt: row.dataRispostaPreventivo,
   };
 }
 
@@ -228,7 +240,12 @@ async function ensureDatabaseSchema(): Promise<void> {
       materiale TEXT,
       stato TEXT NOT NULL DEFAULT 'sent',
       "adminResponsabile" TEXT,
-      "dataAggiornamento" TIMESTAMP WITH TIME ZONE
+      "dataAggiornamento" TIMESTAMP WITH TIME ZONE,
+      "importoPreventivo" NUMERIC(10, 2),
+      "notePreventivo" TEXT,
+      "statoPreventivo" TEXT NOT NULL DEFAULT 'not-sent',
+      "dataInvioPreventivo" TIMESTAMP WITH TIME ZONE,
+      "dataRispostaPreventivo" TIMESTAMP WITH TIME ZONE
     );
 
     CREATE TABLE IF NOT EXISTS public."richiestePCTO" (
@@ -250,7 +267,12 @@ async function ensureDatabaseSchema(): Promise<void> {
     alter table public.ordini
       add column if not exists stato text not null default 'sent',
       add column if not exists "adminResponsabile" text,
-      add column if not exists "dataAggiornamento" timestamp with time zone;
+      add column if not exists "dataAggiornamento" timestamp with time zone,
+      add column if not exists "importoPreventivo" numeric(10, 2),
+      add column if not exists "notePreventivo" text,
+      add column if not exists "statoPreventivo" text not null default 'not-sent',
+      add column if not exists "dataInvioPreventivo" timestamp with time zone,
+      add column if not exists "dataRispostaPreventivo" timestamp with time zone;
   `);
 
   await pool.query(`
@@ -266,6 +288,14 @@ function assertOrderStatus(value: unknown): OrderStatus {
   }
 
   throw new Error('Stato ordine non valido');
+}
+
+function assertOrderQuoteStatus(value: unknown): OrderQuoteStatus {
+  if (typeof value === 'string' && ORDER_QUOTE_STATUSES.includes(value as OrderQuoteStatus)) {
+    return value as OrderQuoteStatus;
+  }
+
+  throw new Error('Stato preventivo non valido');
 }
 
 function assertPctoStatus(value: unknown): PctoStatus {
@@ -669,6 +699,63 @@ app.patch('/api/orders/:id/status', requireAuth, requireAdmin, async (req: Authe
       returning *
     `,
     [status, req.user?.name ?? 'Admin OMAT', req.params.id],
+  );
+
+  if (!result.rowCount) {
+    res.status(404).send('Ordine non trovato');
+    return;
+  }
+
+  const enriched = await pool.query(
+    `
+      select o.*, a."nomeAzienda", a."emailAzienda"
+      from public.ordini o
+      left join public.aziende a on a."idAzienda" = o."idAzienda"
+      where o.id = $1
+      limit 1
+    `,
+    [req.params.id],
+  );
+
+  res.send(normalizeOrder(enriched.rows[0]));
+});
+
+app.patch('/api/orders/:id/quote', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  const status = req.body.status ? assertOrderQuoteStatus(req.body.status) : undefined;
+  const amount =
+    req.body.amount === null || req.body.amount === undefined || req.body.amount === ''
+      ? null
+      : Number(req.body.amount);
+
+  if (amount !== null && (Number.isNaN(amount) || amount < 0)) {
+    res.status(400).send('Importo preventivo non valido');
+    return;
+  }
+
+  const result = await pool.query(
+    `
+      update public.ordini
+      set "importoPreventivo" = coalesce($1, "importoPreventivo"),
+          "notePreventivo" = coalesce($2, "notePreventivo"),
+          "statoPreventivo" = coalesce($3, "statoPreventivo"),
+          "dataInvioPreventivo" = case
+            when $3 = 'sent' then current_timestamp
+            else "dataInvioPreventivo"
+          end,
+          "dataRispostaPreventivo" = case
+            when $3 in ('accepted', 'rejected') then current_timestamp
+            else "dataRispostaPreventivo"
+          end,
+          "dataAggiornamento" = current_timestamp
+      where id = $4
+      returning *
+    `,
+    [
+      amount,
+      req.body.notes === undefined ? null : String(req.body.notes ?? ''),
+      status ?? null,
+      req.params.id,
+    ],
   );
 
   if (!result.rowCount) {

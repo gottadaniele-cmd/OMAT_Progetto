@@ -186,7 +186,14 @@
   gap: 14px;
 }
 
+.quote-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .info-grid div,
+.quote-summary div,
 .text-block,
 .empty-box {
   border: 1px solid #edf1f7;
@@ -196,12 +203,41 @@
 }
 
 .info-grid span,
+.quote-summary span,
 .text-block span {
   display: block;
   margin-bottom: 6px;
   color: #758197;
   font-size: 0.86rem;
   font-weight: 800;
+}
+
+.quote-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.quote-form label,
+.quote-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.quote-form input,
+.quote-form textarea {
+  border: 1px solid #d8e0ed;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.quote-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.quote-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .text-block {
@@ -250,6 +286,7 @@
 }
 
 .action-stack button,
+.quote-actions button,
 .missing-panel a {
   min-height: 48px;
   border: 0;
@@ -262,17 +299,20 @@
   font-weight: 900;
 }
 
+.quote-actions .secondary,
 .action-stack .secondary {
   border: 1px solid #d8e0ed;
   background: #fff;
   color: var(--primary-dark);
 }
 
+.quote-actions .danger,
 .action-stack .danger {
   background: #fff1f2;
   color: #be123c;
 }
 
+.quote-actions button:disabled,
 .action-stack button:disabled {
   cursor: wait;
   opacity: 0.65;
@@ -317,7 +357,9 @@
 }
 
 @media screen and (max-width: 700px) {
-  .info-grid {
+  .info-grid,
+  .quote-summary,
+  .quote-actions {
     grid-template-columns: 1fr;
   }
 }
