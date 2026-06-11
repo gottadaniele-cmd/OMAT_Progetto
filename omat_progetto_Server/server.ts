@@ -878,6 +878,29 @@ app.post('/api/pcto', attachUserIfPresent, async (req: AuthenticatedRequest, res
         [req.user.id],
       );
       student = studentResult.rows[0];
+
+      if (student) {
+        const postalCode = req.body.cap ?? req.body.postalCode;
+        const updatedStudent = await client.query(
+          `
+            update public.studenti
+            set nome = coalesce($1, nome),
+                cognome = coalesce($2, cognome),
+                citta = coalesce($3, citta),
+                cap = coalesce($4, cap)
+            where "idStudente" = $5
+            returning "idStudente", nome, cognome, "numeroTelefono", email, citta, cap
+          `,
+          [
+            req.body.nome ?? req.body.firstName ?? null,
+            req.body.cognome ?? req.body.lastName ?? null,
+            req.body.citta ?? req.body.city ?? null,
+            postalCode ? Number(postalCode) : null,
+            req.user.id,
+          ],
+        );
+        student = updatedStudent.rows[0];
+      }
     } else {
       // Controlla se lo studente esiste già per email
       const existingStudent = await client.query(

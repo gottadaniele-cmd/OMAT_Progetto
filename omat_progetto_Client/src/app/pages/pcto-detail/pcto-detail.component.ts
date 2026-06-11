@@ -59,6 +59,30 @@ export class PctoDetailComponent implements OnInit {
     });
   }
 
+  protected contactStudent(request: PctoRequest): void {
+    if (!request.email) {
+      this.actionError.set('Email studente non disponibile per questa richiesta.');
+      return;
+    }
+
+    const subject = encodeURIComponent('Richiesta PCTO OMAT');
+    const body = encodeURIComponent(
+      [
+        `Ciao ${request.studentName},`,
+        '',
+        'ti contattiamo in merito alla tua richiesta PCTO presso OMAT.',
+        '',
+        `Periodo richiesto: ${this.formatDate(request.startDate)} - ${this.formatDate(request.endDate)}`,
+        `Scuola: ${request.school}`,
+        '',
+        'Cordiali saluti,',
+        'OMAT s.n.c.',
+      ].join('\n'),
+    );
+
+    window.location.href = `mailto:${request.email}?subject=${subject}&body=${body}`;
+  }
+
   protected formatDate(value: string): string {
     return new Intl.DateTimeFormat('it-IT', {
       day: '2-digit',

@@ -29,28 +29,37 @@
       </div>
 
       <div class="workshop-showcase" aria-label="Spazio fotografico officina OMAT">
-        @if (selectedShowcase().imageUrl) {
-          <img
-            class="showcase-photo"
-            [src]="selectedShowcase().imageUrl"
-            [alt]="selectedShowcase().title"
-          />
-        } @else {
-          <div class="photo-placeholder">
-            <span>Foto {{ selectedShowcase().label }}</span>
-            <strong>{{ selectedShowcase().title }}</strong>
-            <p>{{ selectedShowcase().description }}</p>
-          </div>
-        }
+        <img
+          class="showcase-photo"
+          [src]="currentCarouselImage().src"
+          [alt]="currentCarouselImage().alt"
+        />
 
-        <div class="showcase-tags">
-          @for (item of showcaseItems; track item.id) {
+        <button
+          type="button"
+          class="carousel-arrow carousel-arrow-left"
+          aria-label="Foto precedente"
+          (click)="previousImage()"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          class="carousel-arrow carousel-arrow-right"
+          aria-label="Foto successiva"
+          (click)="nextImage()"
+        >
+          ›
+        </button>
+
+        <div class="carousel-dots" aria-label="Selezione foto carosello">
+          @for (image of carouselImages; track image.src; let index = $index) {
             <button
               type="button"
-              [class.is-active]="item.id === selectedShowcaseId()"
-              (click)="selectShowcase(item.id)"
+              [class.is-active]="index === carouselIndex()"
+              [attr.aria-label]="'Vai alla foto ' + (index + 1)"
+              (click)="selectImage(index)"
             >
-              {{ item.label }}
             </button>
           }
         </div>

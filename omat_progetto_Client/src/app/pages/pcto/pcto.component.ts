@@ -49,12 +49,12 @@ export class PctoComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     city: ['', Validators.required],
     postalCode: ['', [Validators.required, Validators.pattern(/^[0-9]{5}$/)]],
-    school: ['', [Validators.required, Validators.minLength(3)]],
+    school: ['', Validators.required],
     classYear: ['', Validators.required],
-    studyProgram: ['', [Validators.required, Validators.minLength(3)]],
+    studyProgram: ['', Validators.required],
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
-    motivation: ['', [Validators.required, Validators.minLength(30)]],
+    motivation: ['', Validators.required],
   });
 
   private readonly pctoFormValue = toSignal(
@@ -133,6 +133,7 @@ export class PctoComponent implements OnInit {
 
     if (this.pctoForm.invalid || !this.hasValidDateRange()) {
       this.pctoForm.markAllAsTouched();
+      this.submitError.set(this.getPctoFormError());
       return;
     }
 
@@ -173,5 +174,33 @@ export class PctoComponent implements OnInit {
       month: 'short',
       year: 'numeric',
     }).format(new Date(value));
+  }
+
+  private getPctoFormError(): string {
+    if (!this.hasValidDateRange()) {
+      return 'Controlla il periodo: la data fine deve essere successiva o uguale alla data inizio.';
+    }
+
+    const fieldLabels: Record<string, string> = {
+      firstName: 'Nome',
+      lastName: 'Cognome',
+      email: 'Email',
+      city: 'Citta',
+      postalCode: 'CAP',
+      school: 'Scuola',
+      classYear: 'Classe',
+      studyProgram: 'Indirizzo',
+      startDate: 'Data inizio',
+      endDate: 'Data fine',
+      motivation: 'Motivazione',
+    };
+
+    const invalidFields = Object.entries(this.pctoForm.controls)
+      .filter(([, control]) => control.invalid)
+      .map(([fieldName]) => fieldLabels[fieldName] ?? fieldName);
+
+    return invalidFields.length
+      ? `Controlla questi campi: ${invalidFields.join(', ')}.`
+      : 'Controlla i dati inseriti prima di inviare la richiesta PCTO.';
   }
 }
